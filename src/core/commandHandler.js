@@ -41,34 +41,6 @@ function attach(bot) {
 
   const dispatch = (sender, message, isWhisper) => {
     if (sender === bot.username) return;
-    if (!message.startsWith(PREFIX)) return;
-
-    const now = Date.now();
-    let limit = rateLimits.get(sender);
-    if (!limit) {
-      limit = { count: 0, lastReset: now, timedOutUntil: 0 };
-      rateLimits.set(sender, limit);
-    }
-
-    if (now < limit.timedOutUntil) {
-      return; // Silently fail while timed out
-    }
-
-    if (now - limit.lastReset > 1000) {
-      limit.count = 0;
-      limit.lastReset = now;
-    }
-
-    limit.count++;
-
-    if (limit.count > 3) {
-      limit.timedOutUntil = now + 3000;
-      console.log(`[ratelimit] ${sender} timed out for 3s (spam)`);
-      return; // Silently fail
-    }
-
-    const [cmd, ...args] = message.slice(PREFIX.length).split(" ");
-    const entry = commands.get(cmd.toLowerCase());
 
     const respond = (text) => {
       if (isWhisper) {
@@ -78,10 +50,59 @@ function attach(bot) {
       }
     };
 
+    const now = Date.now();
+    let limit = rateLimits.get(sender);
+    if (!limit) {
+      limit = { count: 0, lastReset: now, timedOutUntil: 0 };
+      rateLimits.set(sender, limit);
+    }
+
+    const consumeRateLimit = () => {
+      if (now < limit.timedOutUntil) return false;
+
+      if (now - limit.lastReset > 1000) {
+        limit.count = 0;
+        limit.lastReset = now;
+      }
+
+      limit.count++;
+
+      if (limit.count > 3) {
+        limit.timedOutUntil = now + 3000;
+        console.log(`[ratelimit] ${sender} timed out for 3s (spam)`);
+        return false;
+      }
+      return true;
+    };
+
+    if (!message.startsWith(PREFIX)) {
+      const lowerMsg = message.toLowerCase();
+      
+      const imMatch = message.match(/^(?:i'm|im)\s+(?:an?\s+)?(.+)$/i);
+      if (imMatch) {
+        if (!consumeRateLimit()) return;
+        respond(`hi ${imMatch[1]}, i am glitchy's bot :P`);
+        return;
+      }
+
+      if (lowerMsg.includes("meow")) {
+        if (!consumeRateLimit()) return;
+        const responses = [":3", "mrrrow", "meow", "meow >.<", "owo", "prrrrrr", "mrrrrow"];
+        const res = responses[Math.floor(Math.random() * responses.length)];
+        respond(res);
+        return;
+      }
+      return;
+    }
+
+    const [cmd, ...args] = message.slice(PREFIX.length).split(" ");
+    const entry = commands.get(cmd.toLowerCase());
+
     if (!entry) {
       return;
     }
 
+    if (!consumeRateLimit()) return;
 
     if (entry.admin && !isAdmin(sender)) {
       console.log(`[auth] Rejected admin command !${cmd} from ${sender}`);
