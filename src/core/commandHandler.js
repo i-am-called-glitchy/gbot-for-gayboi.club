@@ -37,9 +37,35 @@ function attach(bot) {
     console.log(`[log] ${jsonMsg.toString()}`);
   });
 
+  const rateLimits = new Map();
+
   const dispatch = (sender, message, isWhisper) => {
     if (sender === bot.username) return;
     if (!message.startsWith(PREFIX)) return;
+
+    const now = Date.now();
+    let limit = rateLimits.get(sender);
+    if (!limit) {
+      limit = { count: 0, lastReset: now, timedOutUntil: 0 };
+      rateLimits.set(sender, limit);
+    }
+
+    if (now < limit.timedOutUntil) {
+      return; // Silently fail while timed out
+    }
+
+    if (now - limit.lastReset > 1000) {
+      limit.count = 0;
+      limit.lastReset = now;
+    }
+
+    limit.count++;
+
+    if (limit.count > 3) {
+      limit.timedOutUntil = now + 3000;
+      console.log(`[ratelimit] ${sender} timed out for 3s (spam)`);
+      return; // Silently fail
+    }
 
     const [cmd, ...args] = message.slice(PREFIX.length).split(" ");
     const entry = commands.get(cmd.toLowerCase());
@@ -53,9 +79,9 @@ function attach(bot) {
     };
 
     if (!entry) {
-      respond(`Unknown command: ${PREFIX}${cmd}. Try ${PREFIX}help`);
       return;
     }
+
 
     if (entry.admin && !isAdmin(sender)) {
       console.log(`[auth] Rejected admin command !${cmd} from ${sender}`);
@@ -64,7 +90,7 @@ function attach(bot) {
     }
 
     try {
-      entry.execute(bot, sender, args, respond);
+      entry.execute(bot, sender, args, respond, isWhisper);
     } catch (err) {
       console.error(`[cmd] Error running !${cmd}:`, err);
       respond(`Error: ${err.message}`);

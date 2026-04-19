@@ -5,6 +5,6 @@ registerCommand("coinflip", {
   usage: "!coinflip",
   execute(bot, sender, args, respond) {
     const result = Math.random() < 0.5 ? "Heads" : "Tails";
-    respond(`${result}!`);
+    respond(`${sender} ${result}!`);
   },
 });
