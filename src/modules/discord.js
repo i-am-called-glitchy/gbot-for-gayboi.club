@@ -1,4 +1,5 @@
 const { registerCommand } = require("../core/commandHandler");
+const { DISCORD_INVITE } = require("../config");
 
 const discordCommand = {
   description: "Get the Discord server link",
@@ -10,11 +11,11 @@ const discordCommand = {
       bold: true,
       clickEvent: {
         action: "open_url",
-        value: "https://discord.gg/exte2sYr63",
+        value: DISCORD_INVITE,
       },
       hoverEvent: {
         action: "show_text",
-        value: "Opens https://discord.gg/exte2sYr63",
+        value: `Opens ${DISCORD_INVITE}`,
       },
     };
 

@@ -6,6 +6,8 @@ require("./modules/coinflip");
 require("./modules/killme");
 require("./modules/tpa");
 require("./modules/discord");
+require("./modules/help");
+require("./modules/about");
 
 // --- Boot the bot ---
 const { createBot } = require("./core/bot");
